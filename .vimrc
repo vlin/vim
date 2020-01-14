@@ -13,17 +13,18 @@ Plugin 'bling/vim-airline'
 Plugin 'mattn/emmet-vim'
 Plugin 'godlygeek/tabular'
 Plugin 'Shougo/neocomplcache.vim'
-"Plugin 'jelera/vim-javascript-syntax'
-"Plugin 'pangloss/vim-javascript'
+Plugin 'jelera/vim-javascript-syntax'
+Plugin 'pangloss/vim-javascript'
 Plugin 'kien/ctrlp.vim'
 Plugin 'terryma/vim-multiple-cursors'
 Plugin 'tpope/vim-commentary'
 Plugin 'jiangmiao/auto-pairs'
 Plugin 'tpope/vim-fugitive'
 Plugin 'airblade/vim-gitgutter'
-Plugin 'jQuery'
+"Plugin 'jQuery'
 Plugin 'othree/html5.vim'
 Plugin 'yggdroot/indentline'
+Plugin 'posva/vim-vue'
 
 call vundle#end()            " required
 filetype plugin indent on    " required
@@ -47,7 +48,9 @@ set mouse=a
 
 set laststatus=2
 set number
+set relativenumber
 set noshowmode
+set scrolloff=3
 
 set tabstop=2
 set shiftwidth=2
@@ -63,6 +66,12 @@ set hls
 set foldmethod=syntax
 set showcmd
 
+" ================ Folds ============================
+
+set foldmethod=indent   "fold based on indent
+set foldnestmax=3       "deepest fold is 3 levels
+set nofoldenable        "dont fold by default
+
 " backup
 set nobackup
 set nowb
@@ -76,11 +85,24 @@ set incsearch
 set backspace=eol,start,indent
 set whichwrap+=<,>,h,l
 
+set clipboard=unnamed
+
 " javascript settings
 au BufRead,BufNewFile jquery.*.js set ft=javascript syntax=jquery
 
+au BufNewFile,BufRead *.html,*.js,*.vue set tabstop=2
+au BufNewFile,BufRead *.html,*.js,*.vue set softtabstop=2
+au BufNewFile,BufRead *.html,*.js,*.vue set shiftwidth=2
+au BufNewFile,BufRead *.html,*.js,*.vue set expandtab
+au BufNewFile,BufRead *.html,*.js,*.vue set autoindent
+au BufNewFile,BufRead *.html,*.js,*.vue set fileformat=unix
+
 " html5 settings
 let g:html5_event_handler_attributes_complete = 0
+
+" vue settings
+autocmd FileType vue syntax sync fromstart
+autocmd BufRead,BufNewFile *.vue setlocal filetype=vue.html.javascript.css
 
 " nerdtree settings
 " autocmd vimenter * NERDTree
@@ -169,7 +191,61 @@ let g:ctrlp_map = '<c-p>'
 let g:ctrlp_cmd = 'CtrlP'
 
 let g:ctrlp_working_path_mode = 'ra'
-set wildignore+=*/tmp/*,*.so,*.swp,*.zip     " Linux/MacOSX
+" set wildignore+=*/tmp/*,*/.git/*,*.so,*.swp,*.zip,*/node_modules/*    " Linux/MacOSX
+
+let g:ctrlp_custom_ignore = {
+  \ 'dir':  '\.git$\|\.hg$\|\.svn$\|log\|tmp$\|node_modules\|vendor',
+  \ 'file': '\v\.(exe|so|dll)$',
+  \ 'link': 'some_bad_symbolic_links',
+  \ }
+
+let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files -co --exclude-standard']
 
 let g:ctrlp_user_command = 'find %s -type f'        " MacOSX/Linux
+
+" 设置 退出vim后，内容显示在终端屏幕, 可以用于查看和复制, 不需要可以去掉
+" 好处：误删什么的，如果以前屏幕打开，可以找回
+set t_ti= t_te=
+
+" F2 行号开关，用于鼠标复制代码用
+" 为方便复制，用<F2>开启/关闭行号显示:
+function! HideNumber()
+  if(&relativenumber == &number)
+    set relativenumber! number!
+  elseif(&number)
+    set number!
+  else
+    set relativenumber!
+  endif
+  set number?
+endfunc
+nnoremap <F2> :call HideNumber()<CR>
+
+" 定义函数AutoSetFileHead，自动插入文件头
+autocmd BufNewFile *.sh,*.py exec ":call AutoSetFileHead()"
+function! AutoSetFileHead()
+  "如果文件类型为.sh文件
+  if &filetype == 'sh'
+    call setline(1, "\#!/bin/bash")
+  endif
+
+  "如果文件类型为python
+  if &filetype == 'python'
+    call setline(1, "\#!/usr/bin/env python")
+    call append(1, "\# encoding: utf-8")
+  endif
+
+  normal G
+  normal o
+  normal o
+endfunc
+
+" 保存python等多种类型文件时删除多余空格
+function! <SID>StripTrailingWhitespaces()
+    let l = line(".")
+    let c = col(".")
+    %s/\s\+$//e
+    call cursor(l, c)
+endfun
+autocmd FileType c,cpp,java,go,php,html,css,json,javascript,puppet,python,rust,twig,xml,yml,perl autocmd BufWritePre <buffer> :call <SID>StripTrailingWhitespaces()
 
